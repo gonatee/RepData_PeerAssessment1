@@ -1,0 +1,138 @@
+---
+title: "Reproducible Research: Peer Assessment 1"
+author: "Gonatee Klantong"
+date: "20 September 2015"
+output: html_document
+---
+
+This is a R markdown file for the **1 assignment** 
+```{R}
+library(ggplot2)
+library(scales)
+library(sqldf)
+```
+
+1. What is mean total number of steps taken per day?
+---------------------------------------------------
+#### For this part of the assignment, you can ignore the missing values in the dataset.
+* Make a histogram of the total number of steps taken each day
+
+```{R}
+list.files(path = 'd:/_r/')
+download.file(url = 'https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip',destfile = 'd:/_r/activity.zip')
+list.files(path = 'd:/_r/')
+unzip(zipfile = 'd:/_r/activity.zip',overwrite = TRUE,exdir = 'd:/_r')
+list.files(path = 'd:/_r/')
+act <- read.csv(file = 'd:/_r/activity.csv',header = TRUE)
+head(act)
+actNONA <- na.omit(act)
+head(actNONA)
+```
+
+Group data by date and plot histogram
+```{R}
+stepsByDate <- sqldf('select date,sum(steps) as steps from actNONA group by date order by date')
+head(stepsByDate)
+hist(stepsByDate$steps, main = "Total steps by day", xlab = "day", col = "skyblue")
+```
+
+* Calculate and report the mean and median total number of steps taken per day
+```{R}
+meanSteps <- mean(stepsByDate$steps)
+meanSteps
+medianSteps <- median(stepsByDate$steps)
+medianSteps
+```
+So, **mean = `r I(meanSteps)`** and **median = `r I(medianSteps)`**
+
+
+2. What is the average daily activity pattern?
+---------------------------------------------
+* Make a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
+
+Now we add mean from last section into the time series (don't forget to remove NA) and plot it out
+```{R}
+timeSeries <- tapply(actNONA$steps, actNONA$interval,mean, na.rm = TRUE)
+head(timeSeries)
+plot(row.names(timeSeries), timeSeries, type = "l", xlab = "5 min. interval", 
+    ylab = "Avg across all days", main = "Avg no of steps taken", 
+    col = "navyblue")
+```
+
+* Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
+and the 5-minute interval that contains maximum number of steps is...
+```{R}
+names(which.max(timeSeries))
+```
+
+Imputing missing values
+-----------------------
+#### Note that there are a number of days/intervals where there are missing values (coded as NA). The presence of missing days may introduce bias into some calculations or summaries of the data.
+* Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with NAs)
+```{R}
+actNA <- is.na(act)
+head(actNA)
+# We use the trick that a TRUE boolean value is equivalent to 1 and a FALSE to 0.
+sum(actNA)
+```
+* Devise a strategy for filling in all of the missing values in the dataset. The strategy does not need to be sophisticated. For example, you could use the mean/median for that day, or the mean for that 5-minute interval, etc.
+
+We will use mean to replace the missing value
+```{R}
+# Find the NA positions and create means vector
+NAposition <- which(is.na(act$steps))
+means <- rep(mean(act$steps, na.rm=TRUE), times=length(NAposition))
+```
+
+* Create a new dataset that is equal to the original dataset but with the missing data filled in.
+```{R}
+actFilled <- act
+actFilled[NAposition, "steps"] <- means
+head(actFilled)
+```
+* Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
+```{R}
+# Histogram
+stepsByDate2 <- sqldf('select date,sum(steps) as steps from actFilled group by date order by date')
+head(stepsByDate2)
+hist(stepsByDate2$steps, main = "Total steps by day #2", xlab = "day", col = "yellow")
+
+# Re-calculate mean and median
+meanSteps2 <- mean(stepsByDate2$steps)
+meanSteps2
+medianSteps2 <- median(stepsByDate2$steps)
+medianSteps2
+```
+So, **new mean = `r I(meanSteps2)`** and **new median = `r I(medianSteps2)`**
+
+Now, for the different of before and after imputed
+```{R}
+# Histogram
+hist(stepsByDate2$steps, main = paste("Total steps by day #2"), col="skyblue", xlab="Number of Steps")
+
+hist(stepsByDate$steps, main = paste("Total steps by day"), col="yellow", xlab="Number of Steps", add=T)
+legend("topright", c("Imputed", "Non-imputed"), col=c("skyblue", "yellow"), lwd=10)
+
+# mean
+meanSteps2 - meanSteps
+
+# median
+medianSteps2 - medianSteps
+
+# Total no of steps
+sum(stepsByDate2$steps) - sum(stepsByDate$steps)
+percentIncreased <- ((sum(stepsByDate2$steps) - sum(stepsByDate$steps))/sum(stepsByDate$steps))*100
+percentIncreased
+```
+These values differ greatly from the estimates, and to have `r I(percentIncreased)` more data can lead to bigger mean and median
+
+Are there differences in activity patterns between weekdays and weekends?
+-----------------------------------------------------------------------
+#### For this part the weekdays() function may be of some help here. Use the dataset with the filled-in missing values for this part.
+
+* Create a new factor variable in the dataset with two levels -- "weekday" and "weekend" indicating whether a given date is a weekday or weekend day.
+```{R}
+# NOT FINISHED T_T
+```
+
+* Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). The plot should look something like the following, which was created using simulated data:
